@@ -3,7 +3,7 @@ from nltk import word_tokenize, FreqDist
 from nltk.util import ngrams
 from nltk.corpus import stopwords, europarl_raw
 from nltk.tokenize import RegexpTokenizer
-import ipdb, pickle, sys
+import ipdb, pickle, sys, os
 
 languages_corpus = {}
 
@@ -39,13 +39,14 @@ class LanguageDetector:
 
     def loadLanguagesProfiles(self, profile_size):
         profiles = {}
+        current_dir = os.path.dirname(__file__)
         for lang in self.supported_languages:
             try:
-                profiles[lang] = pickle.load(open("profiles/{0}_{1}.pk".format(lang, profile_size), "rb"))
+                profiles[lang] = pickle.load(open(os.path.join(current_dir, "profiles/{0}_{1}.pk".format(lang, profile_size)), "rb"))
                 #print "{0} profile loaded..".format(lang)
             except:
                 profiles[lang] = self.generateNgramsProfile(self.getCorpus(lang), profile_size)
-                pickle.dump(profiles[lang], open("profiles/{0}_{1}.pk".format(lang, profile_size), "wb"))
+                pickle.dump(profiles[lang], open(os.path.join(current_dir, "profiles/{0}_{1}.pk".format(lang, profile_size)), "wb"))
                 print "{0} profile persisted for future use..".format(lang)
         return profiles
 
