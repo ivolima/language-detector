@@ -8,8 +8,12 @@ import ipdb, pickle, sys, os
 languages_corpus = {}
 
 class LanguageDetector:
+    """
+    """
 
     def __init__(self, method='ngrams', profile_size=200):
+        """
+        """
         self.method = method
         self.profile_size = profile_size
         self.tokenizer = RegexpTokenizer(r'\w+')
@@ -37,7 +41,16 @@ class LanguageDetector:
         if language == 'french':
             return europarl_raw.french.raw()
 
-    def load_languages_profiles(self, profile_size):
+    def load_languages_profiles(self, profile_size=200):
+        """
+        Parameters
+        ----------
+        profile_size : int, optional (default=200)
+
+        Returns
+        -------
+        profiles : dict
+        """
         profiles = {}
         current_dir = os.path.dirname(__file__)
         for lang in self.supported_languages:
@@ -51,9 +64,32 @@ class LanguageDetector:
         return profiles
 
     def sanitize_text(self, text):
-        return ' '.join(self.tokenizer.tokenize(text.lower()))
+        """
+        It reads incoming text, gets rid of punctuation and returns resulting text sanitized.
+
+        Parameters
+        ---------
+        text : unicode
+
+        Returns
+        ------
+        sanitized_text : unicode
+        """
+        sanitized_text = ' '.join(self.tokenizer.tokenize(text.lower()))
+        return sanitized_text
 
     def guess_language(self, text):
+        """
+        Parameters
+        ----------
+        text : unicode
+
+        Returns
+        -------
+        results : dict
+
+        query_profile : FreqDist object
+        """
         query_profile = self.generate_ngrams_profile(text, self.profile_size)
         results = {key:self.compare_ngrams_profiles(self.profiles[key], query_profile) for key in self.profiles}
         #print "##############################################################"
@@ -62,15 +98,48 @@ class LanguageDetector:
         return results, query_profile
 
     def generate_ngrams_profile(self, text, profile_size, min_size=2, max_size=3):
+        """
+        It reads incoming text, generates all possible N-grams, with sizes ranging between min_size and max_size and counts the occurrences of all N-grams.
+
+        Parameters
+        ----------
+        text : unicode
+
+        profile_size : int
+
+        min_size : int, optional (default=2)
+
+        max_size : int, optional (default=3)
+
+        Returns
+        -------
+        ngram_profile : FreqDist object
+
+        """
         raw_ngrams = []
         text = self.sanitize_text(text)
         for n in range(min_size, max_size+1):
             for ngram in ngrams(text, n):
                 raw_ngrams.append(''.join(unicode(i) for i in ngram))
         fdist = FreqDist(raw_ngrams)
-        return fdist.most_common(n=profile_size)
+        ngram_profile = fdist.most_common(n=profile_size)
+        return ngram_profile
 
     def compare_ngrams_profiles(self, language_profile, query_profile):
+        """
+        It takes two N-gram profiles and calculates a simple rank-order statistic we call the “out-of-place” measure.
+        This measure determines how far out of place an N-gram in one profile is from its place in the other profile.
+
+        Parameters
+        ----------
+        language_profile : FreqDist object
+
+        query_profile : FreqDist object
+
+        Returns
+        -------
+        cumulative_distance : int
+        """
         _ngrams_language_profile = [t[0] for t in language_profile]
         _ngrams_query_profile = [t[0] for t in query_profile]
         cummulative_distance = 0
